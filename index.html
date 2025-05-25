@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planilha de Dívidas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(120deg, #e0e7ff 0%, #f5f7fa 100%);
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2d3a4b;
+      margin-top: 32px;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    form {
+      max-width: 600px;
+      margin: 32px auto 24px auto;
+      background: #fff;
+      padding: 32px 24px 24px 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      border-radius: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    input, button, select {
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #e0e7ff;
+      padding: 12px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus, select:focus {
+      border: 1.5px solid #0077cc;
+    }
+
+    select, input[type="text"], input[type="number"], input[type="date"] {
+      flex: 1 1 180px;
+      min-width: 120px;
+    }
+
+    button[type="submit"] {
+      background: linear-gradient(90deg, #0077cc 60%, #005fa3 100%);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      flex: 1 1 100px;
+      min-width: 120px;
+      box-shadow: 0 2px 8px rgba(0,119,204,0.08);
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button[type="submit"]:hover {
+      background: linear-gradient(90deg, #005fa3 60%, #0077cc 100%);
+      transform: translateY(-2px) scale(1.03);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      margin: 0 auto 32px auto;
+      max-width: 1100px;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 16px 12px;
+      text-align: left;
+      border-bottom: 1px solid #f0f4fa;
+    }
+
+    th {
+      background: linear-gradient(90deg, #0077cc 60%, #005fa3 100%);
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .paga {
+      color: #22bb33;
+      font-weight: bold;
+    }
+
+    .em-aberto {
+      color: #e83e8c;
+      font-weight: bold;
+    }
+
+    .total {
+      font-size: 1.2em;
+      margin-top: 20px;
+      text-align: center;
+      color: #2d3a4b;
+      font-weight: 600;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      margin: 2px 0;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.1s;
+    }
+
+    button[onclick*="marcarComoPaga"] {
+      background: #22bb33;
+      color: #fff;
+    }
+
+    button[onclick*="marcarComoPaga"]:hover {
+      background: #1a8c25;
+    }
+
+    button[onclick*="editarMovimentacao"] {
+      background: #ffc107;
+      color: #2d3a4b;
+    }
+
+    button[onclick*="editarMovimentacao"]:hover {
+      background: #e0a800;
+      color: #fff;
+    }
+
+    button[onclick*="apagarMovimentacao"] {
+      background: #e83e8c;
+      color: #fff;
+    }
+
+    button[onclick*="apagarMovimentacao"]:hover {
+      background: #b71c5a;
+    }
+
+    button[onclick*="exportarExcel"] {
+      background: linear-gradient(90deg, #00c3a0 60%, #0077cc 100%);
+      color: #fff;
+      font-weight: 600;
+      margin-top: 10px;
+      min-width: 180px;
+    }
+
+    button[onclick*="exportarExcel"]:hover {
+      background: linear-gradient(90deg, #0077cc 60%, #00c3a0 100%);
+    }
+
+    @media (max-width: 900px) {
+      form, table {
+        max-width: 98vw;
+      }
+    }
+
+    @media (max-width: 600px) {
+      form {
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px 8px;
+      }
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      tr {
+        margin-bottom: 18px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      }
+      th {
+        display: none;
+      }
+      td {
+        position: relative;
+        padding-left: 50%;
+        border: none;
+        border-bottom: 1px solid #f0f4fa;
+      }
+      td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 16px;
+        font-weight: bold;
+        color: #0077cc;
+        top: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Planilha de Dívidas</h1>
+
+  <form id="formDivida">
+    <select id="tipo" required>
+      <option value="Dívida">Dívida</option>
+      <option value="Receita">Receita</option>
+    </select>
+    <input type="text" id="nome" placeholder="Nome" required>
+    <input type="number" id="valor" placeholder="Valor (R$)" step="0.01" required>
+    <input type="date" id="vencimento" required>
+    <button type="submit">Adicionar</button>
+  </form>
+
+  <h2 style="color:#e83e8c;">Dívidas</h2>
+  <table id="tabelaDividas">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Valor (R$)</th>
+        <th>Vencimento</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="total" id="totalAberto">Total em aberto: R$ 0,00</div>
+
+  <h2 style="color:#22bb33;">Receitas</h2>
+  <table id="tabelaReceitas">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Valor (R$)</th>
+        <th>Data</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="total" id="totalReceita">Total de receitas: R$ 0,00</div>
+  <div class="total" id="saldo">Saldo: R$ 0,00</div>
+
+  <div class="total" id="poupancaBox">
+    Poupança: R$ <span id="valorPoupanca">0,00</span>
+    <input type="number" id="inputPoupanca" placeholder="Valor para poupar" step="0.01" min="0" style="margin-left:10px; width:120px;">
+    <button type="button" onclick="adicionarPoupanca()">Adicionar à poupança</button>
+    <button type="button" onclick="editarPoupanca()" style="background:#ffc107; color:#2d3a4b; margin-left:8px;">Editar</button>
+    <button type="button" onclick="excluirPoupanca()" style="background:#e83e8c; color:#fff; margin-left:8px;">Excluir</button>
+  </div>
+
+  <div style="text-align:center; margin-top: 20px;">
+    <button onclick="exportarExcel()">Exportar para Excel</button>
+  </div>
+
+  <script>
+  const tabelaDividas = document.querySelector("#tabelaDividas tbody");
+const tabelaReceitas = document.querySelector("#tabelaReceitas tbody");
+const totalAberto = document.getElementById("totalAberto");
+const totalReceita = document.getElementById("totalReceita");
+const saldo = document.getElementById("saldo");
+const form = document.getElementById("formDivida");
+let editIndex = null;
+
+function carregarDividas() {
+  return JSON.parse(localStorage.getItem("movimentacoes")) || [];
+}
+
+function salvarDividas(dados) {
+  localStorage.setItem("movimentacoes", JSON.stringify(dados));
+}
+
+function carregarPoupanca() {
+  return parseFloat(localStorage.getItem("poupanca") || "0");
+}
+
+function salvarPoupanca(valor) {
+  localStorage.setItem("poupanca", valor.toString());
+}
+
+function atualizarTabela() {
+  const dados = carregarDividas();
+  tabelaDividas.innerHTML = "";
+  tabelaReceitas.innerHTML = "";
+  let totalDividas = 0;
+  let totalReceitas = 0;
+
+  (dados || []).forEach((d, i) => {
+    if (d.tipo === "Dívida") {
+      if (d.status === "Em aberto") totalDividas += d.valor;
+      const statusClass = d.status === "Paga" ? "paga" : "em-aberto";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td data-label="Nome">${d.nome}</td>
+        <td data-label="Valor">R$ ${d.valor.toFixed(2)}</td>
+        <td data-label="Vencimento">${d.vencimento}</td>
+        <td data-label="Status" class="${statusClass}">${d.status}</td>
+        <td data-label="Ações">
+          ${d.status === "Em aberto" ? `<button onclick="marcarComoPaga(${i})">Marcar como paga</button>` : ""}
+          <button onclick="editarMovimentacao(${i})">✏️</button>
+          <button onclick="apagarMovimentacao(${i})">🗑️</button>
+        </td>
+      `;
+      tabelaDividas.appendChild(tr);
+    } else if (d.tipo === "Receita") {
+      totalReceitas += d.valor;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td data-label="Nome">${d.nome}</td>
+        <td data-label="Valor">R$ ${d.valor.toFixed(2)}</td>
+        <td data-label="Data">${d.vencimento}</td>
+        <td data-label="Ações">
+          <button onclick="editarMovimentacao(${i})">✏️</button>
+          <button onclick="apagarMovimentacao(${i})">🗑️</button>
+        </td>
+      `;
+      tabelaReceitas.appendChild(tr);
+    }
+  });
+
+  totalAberto.textContent = `Total em aberto: R$ ${totalDividas.toFixed(2)}`;
+  totalReceita.textContent = `Total de receitas: R$ ${totalReceitas.toFixed(2)}`;
+  const valorPoupanca = carregarPoupanca();
+  document.getElementById("valorPoupanca").textContent = valorPoupanca.toLocaleString('pt-BR', {minimumFractionDigits:2});
+  saldo.textContent = `Saldo: R$ ${(totalReceitas - totalDividas + valorPoupanca).toFixed(2)}`;
+  form.querySelector("button[type=submit]").textContent = editIndex === null ? "Adicionar" : "Salvar";
+}
+
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const tipo = document.getElementById("tipo").value;
+  const nome = document.getElementById("nome").value.trim();
+  const valor = parseFloat(document.getElementById("valor").value);
+  const venc = document.getElementById("vencimento").value;
+
+  const nova = { tipo, nome, valor, vencimento: venc, status: tipo === "Dívida" ? "Em aberto" : "-" };
+  const dados = carregarDividas();
+
+  if (editIndex === null) {
+    dados.push(nova);
+  } else {
+    if (dados[editIndex].tipo === "Dívida") {
+      nova.status = dados[editIndex].status;
+    }
+    dados[editIndex] = nova;
+    editIndex = null;
+  }
+  salvarDividas(dados);
+  form.reset();
+  atualizarTabela();
+});
+
+function marcarComoPaga(index) {
+  const dados = carregarDividas();
+  dados[index].status = "Paga";
+  salvarDividas(dados);
+  atualizarTabela();
+}
+
+function apagarMovimentacao(index) {
+  if (confirm("Tem certeza que deseja apagar esta movimentação?")) {
+    const dados = carregarDividas();
+    dados.splice(index, 1);
+    salvarDividas(dados);
+    atualizarTabela();
+    if (editIndex === index) {
+      editIndex = null;
+      form.reset();
+      form.querySelector("button[type=submit]").textContent = "Adicionar";
+    }
+  }
+}
+
+function editarMovimentacao(index) {
+  const dados = carregarDividas();
+  const d = dados[index];
+  document.getElementById("tipo").value = d.tipo;
+  document.getElementById("nome").value = d.nome;
+  document.getElementById("valor").value = d.valor;
+  document.getElementById("vencimento").value = d.vencimento;
+  editIndex = index;
+  form.querySelector("button[type=submit]").textContent = "Salvar";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function exportarExcel() {
+  const dados = carregarDividas();
+  const wsData = [
+    ["Tipo", "Nome", "Valor", "Vencimento", "Status"],
+    ...dados.map(d => [d.tipo, d.nome, d.valor, d.vencimento, d.status])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Movimentações");
+  XLSX.writeFile(wb, "planilha_movimentacoes.xlsx");
+}
+
+function adicionarPoupanca() {
+  const input = document.getElementById("inputPoupanca");
+  let valor = parseFloat(input.value);
+  if (isNaN(valor) || valor <= 0) {
+    alert("Informe um valor válido para poupar.");
+    return;
+  }
+  let atual = carregarPoupanca();
+  atual += valor;
+  salvarPoupanca(atual);
+  input.value = "";
+  atualizarTabela();
+}
+
+function editarPoupanca() {
+  let atual = carregarPoupanca();
+  let novoValor = prompt("Editar valor da poupança:", atual.toFixed(2).replace('.', ','));
+  if (novoValor === null) return; // Cancelado
+  novoValor = novoValor.replace(',', '.');
+  novoValor = parseFloat(novoValor);
+  if (isNaN(novoValor) || novoValor < 0) {
+    alert("Informe um valor válido.");
+    return;
+  }
+  salvarPoupanca(novoValor);
+  atualizarTabela();
+}
+
+function excluirPoupanca() {
+  if (confirm("Tem certeza que deseja zerar a poupança?")) {
+    salvarPoupanca(0);
+    atualizarTabela();
+  }
+}
+
+// Atualiza a tabela ao carregar a página
+atualizarTabela();
+  </script>
+</body>
+</html>
