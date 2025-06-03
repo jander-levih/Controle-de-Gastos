@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Planilha Financeira: Dívidas & Receitas</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #3E8E7E;
+      --secondary: #F6FBF9;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --success: #28a745;
+      --info: #007bff;
+      --gray: #E5EAF1;
+      --shadow: 0 2px 12px 0 rgba(62,142,126, 0.09);
+      --radius: 16px;
+      --card-bg: #fff;
+      --income: #50B67A;
+      --expense: #F06161;
+      --saving: #FFD43B;
+      --border: #d4efe7;
+    }
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      background: var(--secondary);
+      color: #244046;
+      min-height: 100vh;
+    }
+    h1 {
+      color: var(--primary);
+      font-weight: 700;
+      margin: 0 0 16px 0;
+      letter-spacing: 1.2px;
+      font-size: 2.3rem;
+      text-align: center;
+    }
+    h2 {
+      color: #1b4741;
+      font-weight: 700;
+      margin: 0 0 18px 0;
+      font-size: 1.35rem;
+      letter-spacing: 1px;
+    }
+    .container {
+      max-width: 1120px;
+      margin: 40px auto 40px auto;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 32px 40px 32px;
+      position: relative;
+      border: 2px solid var(--border);
+    }
+    /* Abas */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 25px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+    .tab-btn {
+      padding: 10px 38px;
+      border: none;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      background: #e3f8f1;
+      color: #41876c;
+      font-weight: 700;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background .14s, color .13s;
+      border-bottom: 2.5px solid transparent;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 4px #00000005;
+    }
+    .tab-btn.active, .tab-btn:focus {
+      background: var(--card-bg);
+      color: var(--primary);
+      border-bottom: 2.5px solid var(--primary);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    /* Fim Abas */
+    .resumo-financeiro {
+      background: linear-gradient(90deg, #e0f8f1 0%, #f5fff9 100%);
+      border-radius: 16px;
+      box-shadow: 0 2px 12px #2f7e6e09;
+      padding: 38px 28px 28px 28px;
+      margin: 0 0 35px 0;
+      max-width: 580px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+      border: 2px dashed #a2ded5;
+    }
+    .resumo-financeiro h3 {
+      color: var(--primary);
+      font-weight: 800;
+      margin-top: 0;
+      margin-bottom: 26px;
+      font-size: 1.55rem;
+      letter-spacing: 2px;
+    }
+    .resumo-cards {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 22px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .card {
+      border-radius: 12px;
+      box-shadow: 0 1px 8px #0001;
+      padding: 24px 22px 18px 22px;
+      min-width: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: box-shadow 0.18s;
+      font-size: 1rem;
+      background: #fff;
+      border: 2.5px solid #f4f8f6;
+      position: relative;
+    }
+    .card .label {
+      font-size: 1.03rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      margin-bottom: 7px;
+      opacity: 0.91;
+    }
+    .card .value {
+      font-size: 1.36rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #222;
+      text-align: right;
+    }
+    .card.receita .label { color: var(--income);}
+    .card.divida .label { color: var(--expense);}
+    .card.poupanca .label { color: var(--saving);}
+    .card.receita { border-color: #d3fbe4; }
+    .card.divida { border-color: #ffe3e3;}
+    .card.poupanca { border-color: #fffbc5;}
+    .saldo-final {
+      margin-top: 20px;
+      font-size: 1.15rem;
+      color: #205b52;
+      background: #e8fff7;
+      border-left: 7px solid var(--primary);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      box-shadow: 0 1px 8px #0001;
+      display: inline-block;
+    }
+    /* FORMULÁRIO */
+    form#formMov {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 18px;
+      background: #e3f8f1;
+      padding: 26px;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 6px 0 rgba(62, 142, 126, 0.06);
+      margin-bottom: 38px;
+      align-items: center;
+      border: 2px solid #d5f3eb;
+    }
+    form label {
+      display: flex;
+      flex-direction: column;
+      font-size: 16px;
+      color: #005f43;
+      font-weight: 500;
+      min-width: 170px;
+      gap: 5px;
+    }
+    form input, form select {
+      border: 1.5px solid #b6c7de;
+      border-radius: 7px;
+      padding: 7px 10px;
+      font-size: 16px;
+      background: #f9fbfb;
+      transition: border .2s;
+    }
+    form input:focus, form select:focus {
+      border: 1.5px solid var(--primary);
+      outline: none;
+      background: #fff;
+    }
+    .btn {
+      padding: 8px 19px;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 15px;
+      transition: background 0.16s, color 0.16s;
+      outline: none;
+      margin-left: 1px;
+      margin-right: 1px;
+      box-shadow: 0 1px 2px #0001;
+      letter-spacing: 1px;
+    }
+    .btn-edit { background: var(--warning); color: #212529; }
+    .btn-edit:hover { background: #ffe082; }
+    .btn-delete { background: var(--danger); color: #fff; }
+    .btn-delete:hover { background: #ff616f; }
+    .btn-nf { background: var(--info); color: #fff; }
+    .btn-nf:hover { background: #0059c1; }
+    .btn-save { background: var(--primary); color: #fff; }
+    .btn-save:hover { background: #25a177; }
+    .btn:active { transform: scale(.97); }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+    }
+    th, td {
+      padding: 12px 10px;
+      text-align: center;
+      font-size: 15.3px;
+    }
+    th {
+      background: var(--primary);
+      color: #fff;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+    tr:nth-child(even) td {
+      background: var(--secondary);
+    }
+    tr:hover td {
+      background: #e2fbf1;
+      transition: background .13s;
+    }
+    #totais table {
+      margin-bottom: 0;
+      box-shadow: none;
+    }
+    #totais th, #totais td {
+      font-size: 16px;
+      padding: 10px 7px;
+    }
+    #totais h2 {
+      margin-top: 28px;
+      margin-bottom: 9px;
+      color: #2f6e65;
+    }
+    #poupanca h2 {
+      color: #2f6e65;
+      margin-top: 28px;
+    }
+    @media (max-width: 800px) {
+      .container { padding: 8px; }
+      .tabs { flex-direction: column; }
+      .tab-btn { padding: 10px 10px; }
+      .resumo-cards { flex-direction: column; gap: 10px;}
+      form#formMov { flex-direction: column; align-items: stretch; gap: 9px; }
+      .btn { padding: 7px 9px; font-size: 14px;}
+      th, td { font-size: 13.3px; padding: 9px 4px;}
+    }
+    ::selection { background: #cde3fa;}
+    .hidden { display: none; }
+    .table-group { margin-bottom: 38px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+    import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBGEvGqpZvaim49OppIeHqcputNEn_xz0g",
+      authDomain: "controle-de-gastos-5.firebaseapp.com",
+      databaseURL: "https://controle-de-gastos-5-default-rtdb.firebaseio.com",
+      projectId: "controle-de-gastos-5",
+      storageBucket: "controle-de-gastos-5.firebasestorage.app",
+      messagingSenderId: "491350391983",
+      appId: "1:491350391983:web:c923293a6acb3a0589285a",
+      measurementId: "G-DYV7YNCR90"
+    };
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
+
+    let movimentacoes = [];
+    let poupancaMensal = {};
+    let totalDividas = 0;
+    let totalReceitas = 0;
+    let totalPoupanca = 0;
+
+    function syncMovimentacoes() {
+      const movRef = ref(db, 'movimentacoes/');
+      onValue(movRef, (snapshot) => {
+        movimentacoes = [];
+        totalDividas = 0;
+        totalReceitas = 0;
+        snapshot.forEach(child => {
+          const mov = child.val();
+          movimentacoes.push({ ...mov, firebaseId: child.key });
+          if (mov.tipo === "Dívida" && mov.pago === "Não") {
+            totalDividas += Number(mov.valor) || 0;
+          }
+          if (mov.tipo === "Receita") {
+            totalReceitas += Number(mov.valor) || 0;
+          }
+        });
+        atualizarTabelas();
+        atualizarTotais();
+        atualizarTabelaPoupanca();
+        atualizarResumoFinanceiro();
+      });
+    }
+
+    function syncPoupanca() {
+      const poupRef = ref(db, 'poupancaMensal/');
+      onValue(poupRef, (snapshot) => {
+        poupancaMensal = {};
+        totalPoupanca = 0;
+        snapshot.forEach(child => {
+          poupancaMensal[child.key] = Number(child.val()) || 0;
+          totalPoupanca += Number(child.val()) || 0;
+        });
+        atualizarTabelaPoupanca();
+        atualizarResumoFinanceiro();
+      });
+    }
+
+    window.salvarMovimentacao = function() {
+      const id = document.getElementById('movId').value;
+      const mesAno = document.getElementById('mesAno').value;
+      const tipo = document.getElementById('tipo').value;
+      const descricao = document.getElementById('descricao').value;
+      const valor = parseFloat(document.getElementById('valor').value);
+      const dataPgto = document.getElementById('dataPgto').value;
+      const pago = document.getElementById('pago').value;
+      const parcelas = parseInt(document.getElementById('parcelas').value) || 1;
+      const parcelaAtual = parseInt(document.getElementById('parcelaAtual').value) || 1;
+
+      if (!mesAno || !tipo || !descricao || isNaN(valor) || !dataPgto || !pago) return false;
+
+      if (id) {
+        const mov = movimentacoes.find(x => x.id == id);
+        if (mov) {
+          update(ref(db, 'movimentacoes/' + mov.firebaseId), {
+            id: Number(id), mesAno, tipo, descricao, valor, dataPgto, pago, parcelas, parcelaAtual
+          });
+        }
+      } else {
+        const novoIdBase = movimentacoes.length ? Math.max(...movimentacoes.map(x => x.id)) + 1 : 1;
+        if (parcelas > 1 && tipo === "Dívida") {
+          let [ano, mes] = mesAno.split('-').map(Number);
+          for (let i = 1; i <= parcelas; i++) {
+            let mesParcela = String(mes).padStart(2, '0');
+            let mesAnoParcela = `${ano}-${mesParcela}`;
+            let dataPgtoParcela = getDataParcela(dataPgto, i - 1);
+            push(ref(db, 'movimentacoes/'), {
+              id: novoIdBase + i - 1,
+              mesAno: mesAnoParcela,
+              tipo, 
+              descricao: `${descricao} (${i}/${parcelas})`,
+              valor: +(valor / parcelas).toFixed(2),
+              dataPgto: dataPgtoParcela,
+              pago,
+              parcelas,
+              parcelaAtual: i
+            });
+            mes++;
+            if (mes > 12) { mes = 1; ano++; }
+          }
+        } else {
+          push(ref(db, 'movimentacoes/'), {
+            id: novoIdBase,
+            mesAno, tipo, descricao, valor, dataPgto, pago, parcelas: 1, parcelaAtual: 1
+          });
+        }
+      }
+      document.getElementById('formMov').reset();
+      document.getElementById('movId').value = '';
+      return false;
+    };
+
+    function getDataParcela(data, incremento) {
+      let d = new Date(data);
+      d.setMonth(d.getMonth() + incremento);
+      return d.toISOString().slice(0, 10);
+    }
+
+    window.editarMov = function(id) {
+      const mov = movimentacoes.find(x => x.id == id);
+      if (!mov) return;
+      document.getElementById('movId').value = mov.id;
+      document.getElementById('mesAno').value = mov.mesAno;
+      document.getElementById('tipo').value = mov.tipo;
+      document.getElementById('descricao').value = mov.descricao.replace(/\s?\(\d+\/\d+\)$/, "");
+      document.getElementById('valor').value = mov.valor * (mov.parcelas || 1);
+      document.getElementById('dataPgto').value = mov.dataPgto;
+      document.getElementById('pago').value = mov.pago;
+      document.getElementById('parcelas').value = mov.parcelas || 1;
+      document.getElementById('parcelaAtual').value = mov.parcelaAtual || 1;
+      window.scrollTo(0,0);
+    };
+
+    window.excluirMov = function(id) {
+      if (!confirm('Deseja realmente excluir?')) return;
+      const mov = movimentacoes.find(x => x.id == id);
+      if (mov) {
+        remove(ref(db, 'movimentacoes/' + mov.firebaseId));
+      }
+    };
+
+    function atualizarTabelas() {
+      const tbodyDivida = document.querySelector('#tabelaDividas tbody');
+      const tbodyReceita = document.querySelector('#tabelaReceitas tbody');
+      tbodyDivida.innerHTML = '';
+      tbodyReceita.innerHTML = '';
+      movimentacoes
+        .sort((a, b) => a.id - b.id)
+        .forEach(mov => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${mov.id}</td>
+            <td>${mov.mesAno}</td>
+            <td>${mov.tipo}</td>
+            <td>${mov.descricao}</td>
+            <td>${mov.valor.toFixed(2)}</td>
+            <td>${mov.dataPgto}</td>
+            <td>${mov.pago}</td>
+            <td><button class="btn btn-edit" onclick="editarMov(${mov.id})">Editar</button></td>
+            <td><button class="btn btn-delete" onclick="excluirMov(${mov.id})">Excluir</button></td>
+          `;
+          if (mov.tipo === "Dívida") {
+            tbodyDivida.appendChild(tr);
+          } else if (mov.tipo === "Receita") {
+            tbodyReceita.appendChild(tr);
+          }
+        });
+    }
+
+    function atualizarTotais() {
+      const agrupado = {};
+      movimentacoes.forEach(mov => {
+        if (!agrupado[mov.mesAno]) agrupado[mov.mesAno] = { dividas: 0, receita: 0 };
+        if (mov.tipo === 'Dívida' && mov.pago === 'Não') agrupado[mov.mesAno].dividas += mov.valor;
+        if (mov.tipo === 'Receita') agrupado[mov.mesAno].receita += mov.valor;
+      });
+
+      let html = `<h2>Resumo Mensal</h2>
+      <table>
+        <thead>
+        <tr>
+          <th>Mês/Ano</th>
+          <th>Total Dívidas em Aberto (R$)</th>
+          <th>Total Receita (R$)</th>
+        </tr>
+        </thead>
+        <tbody>`;
+      for (const mes in agrupado) {
+        html += `<tr>
+          <td>${mes}</td>
+          <td>${agrupado[mes].dividas.toFixed(2)}</td>
+          <td>${agrupado[mes].receita.toFixed(2)}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('totais').innerHTML = html;
+    }
+
+    window.editarPoupanca = function(mesAno) {
+      const atual = poupancaMensal[mesAno] || 0;
+      const valor = prompt(`Novo valor para poupança de ${mesAno}:`, atual);
+      if (valor !== null && !isNaN(Number(valor)) && Number(valor) >= 0) {
+        set(ref(db, 'poupancaMensal/' + mesAno), Number(valor));
+      }
+    };
+
+    window.gerarNF = function(mesAno) {
+      const movs = movimentacoes.filter(m => m.mesAno === mesAno);
+      let texto = `Nota Fiscal Simulada - ${mesAno}\n\nMovimentações:\n`;
+      movs.forEach(m =>
+        texto += `- [${m.tipo}] ${m.descricao}: R$ ${m.valor.toFixed(2)} - Pago: ${m.pago}\n`
+      );
+      texto += `\nValor Poupança: R$ ${(poupancaMensal[mesAno] || 0).toFixed(2)}`;
+
+      // Gera PDF usando jsPDF
+      const doc = new window.jspdf.jsPDF();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text(`Nota Fiscal Simulada - ${mesAno}`, 15, 18);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      let y = 30;
+      movs.forEach(mov => {
+        doc.text(`- [${mov.tipo}] ${mov.descricao}: R$ ${mov.valor.toFixed(2)} - Pago: ${mov.pago}`, 15, y);
+        y += 8;
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+      y += 5;
+      doc.text(`Valor Poupança: R$ ${(poupancaMensal[mesAno] || 0).toFixed(2)}`, 15, y);
+      doc.save(`Nota_Fiscal_${mesAno}.pdf`);
+    };
+
+    function atualizarTabelaPoupanca() {
+      const meses = new Set([
+        ...movimentacoes.map(m => m.mesAno),
+        ...Object.keys(poupancaMensal)
+      ]);
+      const tbody = document.querySelector('#tabelaPoupanca tbody');
+      tbody.innerHTML = '';
+      Array.from(meses).sort().forEach(mesAno => {
+        const valPoup = poupancaMensal[mesAno] || 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${mesAno}</td>
+          <td>${valPoup.toFixed(2)}</td>
+          <td><button class="btn btn-edit" onclick="editarPoupanca('${mesAno}')">Editar</button></td>
+          <td><button class="btn btn-nf" onclick="gerarNF('${mesAno}')">Gerar NF PDF</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Resumo financeiro
+    function atualizarResumoFinanceiro() {
+      document.getElementById('valorDividas').textContent = "R$ " + totalDividas.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+      document.getElementById('valorReceitas').textContent = "R$ " + totalReceitas.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+      document.getElementById('valorPoupanca').textContent = "R$ " + totalPoupanca.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+      let saldo = totalReceitas - totalDividas + totalPoupanca;
+      let saldoStr = "Saldo Final: <b>R$ " + saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + "</b>";
+      document.getElementById('saldoFinal').innerHTML = saldoStr;
+    }
+
+    // Abas
+    window.switchTab = function(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(tabC => tabC.classList.remove('active'));
+      document.getElementById('tab-btn-' + tab).classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('active');
+    };
+
+    window.onload = () => {
+      syncMovimentacoes();
+      syncPoupanca();
+      switchTab('resumo');
+    };
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Minha Planilha Financeira</h1>
+
+    <!-- Abas -->
+    <div class="tabs">
+      <button class="tab-btn" id="tab-btn-resumo" onclick="switchTab('resumo')">Resumo</button>
+      <button class="tab-btn" id="tab-btn-dividas" onclick="switchTab('dividas')">Dívidas</button>
+      <button class="tab-btn" id="tab-btn-receitas" onclick="switchTab('receitas')">Receitas</button>
+      <button class="tab-btn" id="tab-btn-poupanca" onclick="switchTab('poupanca')">Poupança & NF</button>
+    </div>
+
+    <!-- Tab Resumo Financeiro -->
+    <div class="tab-content" id="tab-resumo">
+      <div class="resumo-financeiro" id="resumo-financeiro">
+        <h3>Resumo Financeiro</h3>
+        <div class="resumo-cards">
+          <div class="card divida">
+            <span class="label">Total Dívidas em Aberto</span>
+            <span class="value" id="valorDividas">R$ 0,00</span>
+          </div>
+          <div class="card receita">
+            <span class="label">Total de Receitas</span>
+            <span class="value" id="valorReceitas">R$ 0,00</span>
+          </div>
+          <div class="card poupanca">
+            <span class="label">Total na Poupança</span>
+            <span class="value" id="valorPoupanca">R$ 0,00</span>
+          </div>
+        </div>
+        <div class="saldo-final" id="saldoFinal">
+          Saldo Final: <b>R$ 0,00</b>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Dividas -->
+    <div class="tab-content" id="tab-dividas">
+      <form id="formMov" onsubmit="return salvarMovimentacao()">
+        <input type="hidden" id="movId">
+        <label>
+          Mês/Ano:
+          <input type="month" id="mesAno" required>
+        </label>
+        <label>
+          Tipo:
+          <select id="tipo" required>
+            <option value="Dívida">Dívida</option>
+            <option value="Receita">Receita</option>
+          </select>
+        </label>
+        <label>
+          Descrição:
+          <input type="text" id="descricao" required>
+        </label>
+        <label>
+          Valor (R$):
+          <input type="number" id="valor" step="0.01" min="0" required>
+        </label>
+        <label>
+          Data do Pagamento:
+          <input type="date" id="dataPgto" required>
+        </label>
+        <label>
+          Pago?
+          <select id="pago" required>
+            <option value="Não">Não</option>
+            <option value="Sim">Sim</option>
+          </select>
+        </label>
+        <label>
+          Parcelas:
+          <input type="number" id="parcelas" min="1" value="1" style="width:60px;">
+        </label>
+        <label class="hidden">
+          Parcela Atual:
+          <input type="number" id="parcelaAtual" min="1" value="1" style="width:60px;">
+        </label>
+        <button class="btn btn-save" type="submit" id="btnSalvar">Salvar</button>
+      </form>
+      <div class="table-group">
+        <h2>Dívidas</h2>
+        <table id="tabelaDividas">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Mês/Ano</th>
+              <th>Tipo</th>
+              <th>Descrição</th>
+              <th>Valor (R$)</th>
+              <th>Data do Pagamento</th>
+              <th>Pago?</th>
+              <th>Editar</th>
+              <th>Excluir</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Preenchido via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Tab Receitas -->
+    <div class="tab-content" id="tab-receitas">
+      <div class="table-group">
+        <h2>Receitas</h2>
+        <table id="tabelaReceitas">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Mês/Ano</th>
+              <th>Tipo</th>
+              <th>Descrição</th>
+              <th>Valor (R$)</th>
+              <th>Data do Pagamento</th>
+              <th>Pago?</th>
+              <th>Editar</th>
+              <th>Excluir</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Preenchido via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Tab Poupanca & NF -->
+    <div class="tab-content" id="tab-poupanca">
+      <div id="totais"></div>
+      <div id="poupanca">
+        <h2>Poupança Mensal e Nota Fiscal PDF</h2>
+        <table id="tabelaPoupanca">
+          <thead>
+            <tr>
+              <th>Mês/Ano</th>
+              <th>Valor Poupança (R$)</th>
+              <th>Editar Poupança</th>
+              <th>Gerar NF PDF</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Preenchido via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
